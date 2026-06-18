@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GML Cheat Console — GameMaker dev console &amp; cheat generator — by GanjaViruss &amp; Claude</title>
+<meta name="description" content="Generate a full in-game dev console for GameMaker (GML). Type your toggles, set / adjust commands and actions, get one ready script (console_create, console_step, console_draw + Cheats parser) you paste once and call from your controller. Free, open source.">
+<style>
+  :root{
+    --bg:#141414; --panel:#1e1e1e; --panel2:#252525; --field:#181818;
+    --border:#333; --border2:#444; --txt:#d4d4d4; --muted:#777;
+    --accent:#00ff9d; --accent2:#00c478; --accent3:#00ff9d22;
+    --red:#ff5d5d; --yellow:#ffd166; --claude:#d97757; --blue:#5db0ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--txt); min-height:100vh; padding:16px;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  h1{text-align:center; color:var(--accent); font-size:22px; font-weight:800; margin-bottom:3px;}
+  .sub{text-align:center; color:var(--muted); font-size:13px; margin-bottom:4px;}
+  .sub code{color:var(--accent);}
+  .by{text-align:center; font-size:12px; color:var(--muted); margin-bottom:3px;}
+  .by a{color:var(--accent2); text-decoration:none;}
+  .by .claude{color:var(--claude); font-weight:600;}
+  .ai-badge{display:inline-block; margin:5px auto 0; padding:2px 10px; border:1px solid var(--claude); border-radius:20px; font-size:11px; color:var(--claude); letter-spacing:.3px;}
+  .badge-wrap{text-align:center; margin-bottom:18px;}
+
+  .main{display:flex; gap:16px; align-items:flex-start;}
+  .build-col{flex:1 1 52%; min-width:0; display:flex; flex-direction:column; gap:14px;}
+  .panel-col{flex:1 1 48%; min-width:0; display:flex; flex-direction:column; gap:14px;}
+
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px;}
+  .card h3{font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin-bottom:12px; font-weight:700;}
+
+  .row{display:flex; align-items:center; gap:10px; margin-bottom:11px; flex-wrap:wrap;}
+  .row:last-child{margin-bottom:0;}
+  .row label{font-size:12.5px; color:var(--txt);}
+  .row label.w{min-width:90px;}
+  input[type=text]{background:var(--field); color:var(--txt); border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-family:inherit; font-size:13px; flex:1; min-width:0;}
+  input[type=text].mono{font-family:Consolas,monospace; font-size:12.5px;}
+  input[type=text].sm{flex:0 0 auto; width:120px;}
+  select{background:var(--field); color:var(--txt); border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-family:inherit; font-size:13px; cursor:pointer;}
+  .hint{font-size:11.5px; color:var(--muted); line-height:1.5;}
+  .give-row{padding:7px 9px; background:rgba(199,125,255,.05); border:1px solid rgba(199,125,255,.15); border-radius:7px; margin-bottom:8px;}
+  .give-row .w{color:#c77dff;}
+  /* top guide */
+  .guide{background:linear-gradient(160deg,var(--panel),var(--bg2,#141414)); border:1px solid var(--border2); border-radius:12px; margin-bottom:20px; overflow:hidden;}
+  .guide summary{cursor:pointer; padding:14px 16px; font-size:15px; font-weight:700; color:var(--txt); list-style:none; display:flex; align-items:center; gap:10px; user-select:none;}
+  .guide summary::-webkit-details-marker{display:none;}
+  .guide .guide-ico{font-size:18px;}
+  .guide .guide-toggle{margin-left:auto; font-size:11px; font-weight:400; color:var(--muted);}
+  .guide[open] summary{border-bottom:1px solid var(--border);}
+  .guide-body{padding:16px;}
+  .guide-body p{font-size:13.5px; color:var(--txt); line-height:1.6; margin:0 0 11px;}
+  .guide-h{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--accent2); margin:16px 0 7px;}
+  .guide-body code{background:var(--field); border:1px solid var(--border2); border-radius:4px; padding:1px 5px; font-family:Consolas,monospace; font-size:12px; color:var(--accent2);}
+  .guide-list{margin:0 0 4px; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:9px;}
+  .guide-list li{font-size:13px; color:var(--txt); line-height:1.55; padding-left:12px; border-left:2px solid var(--border2);}
+  .guide-list b{font-size:13.5px;}
+  .c-toggle{color:var(--accent);} .c-set{color:var(--yellow);} .c-adjust{color:var(--blue);} .c-action{color:var(--claude);} .c-give{color:#c77dff;}
+  .guide-steps{margin:0 0 11px; padding-left:20px; display:flex; flex-direction:column; gap:7px;}
+  .guide-steps li{font-size:13px; color:var(--txt); line-height:1.55;}
+  .guide-note{font-size:12.5px !important; color:var(--muted) !important; line-height:1.55; padding:11px; background:var(--field); border:1px solid var(--border); border-radius:8px; margin-top:6px !important;}
+  .guide-note code{color:var(--yellow);}
+  .hint code{color:var(--accent2); font-family:Consolas,monospace;}
+
+  .toggle{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; cursor:pointer; user-select:none;}
+  .toggle input{accent-color:var(--accent); width:15px; height:15px;}
+
+  .btn{padding:9px 15px; font-size:13px; font-weight:700; border:none; border-radius:8px; cursor:pointer; transition:all .12s;}
+  .btn-primary{background:var(--accent); color:#0a0a0a;}
+  .btn-primary:hover{background:var(--accent2);}
+  .btn-ghost{background:transparent; color:var(--accent); border:1px solid var(--accent);}
+  .btn-ghost:hover{background:var(--accent3);}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap;}
+
+  /* per-type cheat boxes */
+  .box{margin-bottom:15px;}
+  .box:last-child{margin-bottom:0;}
+  .bhead{display:flex; align-items:baseline; gap:9px; margin-bottom:6px; flex-wrap:wrap;}
+  .bt{font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px; color:var(--txt);}
+  .bhint{font-size:11px; color:var(--muted);}
+  .bhint code{color:var(--accent2); font-family:Consolas,monospace;}
+  .box textarea{width:100%; background:var(--field); color:var(--txt); border:1px solid var(--border2); border-radius:7px; padding:9px 10px; font-family:Consolas,monospace; font-size:12.5px; resize:vertical; min-height:62px; line-height:1.6;}
+  .box textarea:focus{outline:none; border-color:var(--accent2);}
+  .gen-ex{margin-top:6px; background:#0d0d0d; border:1px solid var(--border); border-radius:7px; padding:8px 10px; overflow-x:auto;}
+  .gen-ex .gx-label{font-size:9.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:4px;}
+  .gen-ex pre{font-family:Consolas,monospace; font-size:11px; color:#5a5a5a; line-height:1.5; white-space:pre; margin:0;}
+  .gen-ex pre .k{color:#7a7a7a;}
+  .gen-ex pre .s{color:#6a8a6a;}
+  .steps{display:flex; flex-direction:column; gap:12px; margin-bottom:12px;}
+  .step{display:flex; gap:12px; align-items:flex-start;}
+  .step-n{flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#06231a; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;}
+  .step-c{flex:1;}
+  .step-c b{color:var(--accent2); font-size:14px;}
+  .step-c p{margin:4px 0 0; font-size:13px; color:var(--txt); line-height:1.55;}
+  .step-c ul{margin:6px 0 0 18px; font-size:13px; line-height:1.7;}
+  .step-c code{background:var(--field); border:1px solid var(--border2); border-radius:4px; padding:1px 5px; font-family:Consolas,monospace; font-size:12px; color:var(--accent2);}
+  .tut-note{font-size:12.5px; color:var(--muted); line-height:1.55; padding:10px; background:var(--field); border:1px solid var(--border); border-radius:8px; margin-top:6px;}
+  .tut-note code{background:var(--panel); border-radius:4px; padding:1px 5px; font-family:Consolas,monospace; color:var(--yellow);}
+  .tdot{width:9px; height:9px; border-radius:50%; flex:0 0 auto;}
+  .t-toggle{background:var(--accent);}
+  .t-set{background:var(--yellow);}
+  .t-adjust{background:var(--blue);}
+  .t-action{background:var(--claude);}
+  .t-give{background:#c77dff;}
+
+  /* section headers */
+  .sec-head{display:flex; gap:12px; align-items:flex-start; margin:0 0 12px;}
+  .sec-num{flex:0 0 auto; width:26px; height:26px; border-radius:7px; background:var(--accent); color:#0a0a0a; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; margin-top:1px;}
+  .sec-title{font-size:15px; font-weight:800; color:var(--txt); margin:0;}
+  .sec-desc{font-size:12.5px; color:var(--muted); line-height:1.55; margin-top:3px;}
+
+  /* output */
+  .out-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; flex-wrap:wrap;}
+  .out-head .ot{font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); font-weight:700;}
+  .paste-tag{font-size:11.5px; color:var(--accent2); line-height:1.5;}
+  .paste-tag b{color:var(--accent); font-weight:800;}
+  .code-box{position:relative;}
+  textarea.out{width:100%; background:#0f0f0f; color:var(--txt); border:1px solid var(--border); border-radius:8px; padding:12px; font-family:Consolas,monospace; font-size:12px; line-height:1.55; resize:vertical; white-space:pre;}
+  textarea#outScript{min-height:340px;}
+  textarea#outHook{min-height:130px;}
+  .copy-btn{position:absolute; top:9px; right:9px; padding:5px 13px; font-size:11px;}
+
+  details{background:var(--panel); border:1px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden;}
+  summary{padding:13px 18px; cursor:pointer; font-size:13px; font-weight:700; color:var(--accent); list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"▸"; transition:transform .2s; color:var(--muted);}
+  details[open] summary::after{transform:rotate(90deg);}
+  details[open] summary{border-bottom:1px solid var(--border);}
+  .help{margin-top:20px;}
+  .help-body{padding:16px 18px; font-size:13px; line-height:1.7; color:#bbb;}
+  .help-body b{color:var(--txt);}
+  .help-body code{background:#111; border:1px solid #333; border-radius:4px; padding:1px 6px; font-family:Consolas,monospace; font-size:12px; color:var(--accent);}
+  .help-body p{margin-bottom:9px;}
+
+  .footer{text-align:center; margin:22px 0 8px; font-size:12px; color:var(--muted);}
+  .footer a{color:var(--accent); text-decoration:none;}
+  .footer a:hover{text-decoration:underline;}
+  .gh-btn{display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border:1px solid var(--border2); border-radius:9px; color:var(--txt); font-size:13px; font-weight:700; text-decoration:none; transition:all .15s; margin-bottom:14px;}
+  .gh-btn:hover{border-color:var(--accent); color:var(--accent); text-decoration:none;}
+  .gh-btn svg{width:17px; height:17px; fill:currentColor;}
+  .footer-links{margin-bottom:8px;}
+  .footer-meta{font-size:11.5px; color:var(--muted); line-height:1.7;}
+  .footer-meta .claude{color:var(--claude); font-weight:600;}
+
+  @media (max-width:820px){
+    .main{flex-direction:column;}
+    .build-col,.panel-col{flex:1 1 auto; width:100%;}
+    h1{font-size:19px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GML Cheat Console</h1>
+  <div class="sub">Type your cheats, get one ready script — <code>console_create()</code> · <code>console_step()</code> · <code>console_draw()</code> + a <code>Cheats()</code> parser. Paste once, call from your controller.</div>
+  <div class="by">by <a href="https://github.com/GanjaViruss" target="_blank">GanjaViruss</a> &amp; <span class="claude">Claude Opus 4.8 &amp; Sonnet 4.6</span></div>
+  <div class="badge-wrap"><span class="ai-badge">✦ Built with AI</span></div>
+
+  <details class="guide" open>
+    <summary><span class="guide-ico">📖</span> What is this &amp; how to use it <span class="guide-toggle">tap to fold</span></summary>
+    <div class="guide-body">
+      <p>This tool builds a <b>dev console</b> for your GameMaker game — the little command line you open while testing to flip cheats, set values, spawn items and so on. You write your cheats in plain lines on the left, the tool turns them into one ready GML script. You paste that script once and call three functions. Done.</p>
+
+      <div class="guide-h">The idea</div>
+      <p>You type cheats like <code>god mode = obj_player.hp = obj_player.hp_max</code>. The <b>box</b> you put it in decides what kind of command it becomes — you don't click anything. Left of the <code>=</code> (or <code>:</code>) is the command you'll type in game, right of it is what it does. Empty boxes are skipped.</p>
+
+      <div class="guide-h">The five command types</div>
+      <ul class="guide-list">
+        <li><b class="c-toggle">Toggle</b> — an on/off switch. <code>god mode = obj_player.hp = obj_player.hp_max</code> makes a <code>god mode</code> command that flips a flag, and the effect runs <b>every frame while it's on</b>. Leave the right side empty (<code>show collisions =</code>) to get just a flag you check yourself (handy for dev-only draws).</li>
+        <li><b class="c-set">Set</b> — type a value in game. <code>set cash = global.g_cash</code> means you type <code>set cash 500</code> and it writes 500.</li>
+        <li><b class="c-adjust">Adjust</b> — bump a value up or down. <code>ammo 10 = obj_player.ammo 0 99</code> makes <code>add ammo</code> and <code>minus ammo</code> (steps of 10, clamped 0–99).</li>
+        <li><b class="c-action">Action</b> — run code once. <code>refill = obj_player.hp = obj_player.hp_max; obj_player.ammo = obj_player.ammo_max</code>. Separate statements with <code>;</code>.</li>
+        <li><b class="c-give">Give</b> — hand over an item by <b>ID or name</b>. <code>item = obj_player.item = _id</code> makes a <code>give item</code> command, so <code>give item 5</code> or <code>give item sword</code> both work. <code>_id</code> is the resolved item ID. <b>This is just an example line</b> — change the right side to however <i>your</i> game adds items (an inventory array, a script, a struct, whatever). Set your items array and count under Settings.</li>
+      </ul>
+
+      <div class="guide-h">Putting it in your game</div>
+      <ol class="guide-steps">
+        <li>Make a new <b>Script</b> asset (name it <code>scr_console</code>) and paste the generated script into it.</li>
+        <li>Pick any object that's always in the room — a dedicated <code>obj_console</code> or your game controller, your call. The code goes wherever you want it.</li>
+        <li>On that object add three events and one call each: <b>Create</b> → <code>console_create();</code>, <b>Step</b> → <code>console_step();</code>, <b>Draw GUI</b> → <code>console_draw();</code></li>
+        <li>Run the game, press your open key (<span id="tutKey">F2</span>), type a command, hit Enter.</li>
+      </ol>
+      <p class="guide-note">The console only works while <code>DEV_MODE</code> is <code>true</code>. Flip it to <code>false</code> for release builds so players can't cheat. <code>obj_player</code> in the examples is just a placeholder — use your real object and variable names. My own hand-slot setup isn't the rule, it's just one way; yours will look different and that's fine.</p>
+    </div>
+  </details>
+
+  <div class="main">
+    <!-- BUILD COLUMN -->
+    <div class="build-col">
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">1</span>
+          <div>
+            <h3 class="sec-title">Write your cheats</h3>
+            <div class="sec-desc">One per line, format <code style="color:var(--accent2);font-family:Consolas">left = right</code> (or use <code style="color:var(--accent2);font-family:Consolas">:</code> instead of <code style="color:var(--accent2);font-family:Consolas">=</code>). The box decides the type — no clicking. Leave a box empty if you don't need it.</div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="bhead"><span class="bt"><span class="tdot t-toggle"></span> Toggle</span><span class="bhint"><code>command = effect</code> — flag flips on/off, effect runs every frame while ON</span></div>
+          <textarea id="inToggle" spellcheck="false" placeholder="god mode = obj_player.hp = obj_player.hp_max&#10;show collisions ="></textarea>
+          <div class="gen-ex"><div class="gx-label">generates · the command flips a flag…</div><pre><span class="k">case</span> <span class="s">"god mode"</span>:
+    global.g_cheat_god_mode = !global.g_cheat_god_mode;
+    _end_text = $<span class="s">"God mode: {draw_true_false(global.g_cheat_god_mode)}"</span>;
+<span class="k">break</span>;</pre><div class="gx-label" style="margin-top:7px;">…and the effect runs every step while it's on</div><pre><span class="k">if</span> (global.g_cheat_god_mode) {
+    obj_player.hp = obj_player.hp_max;
+}</pre></div>
+        </div>
+
+        <div class="box">
+          <div class="bhead"><span class="bt"><span class="tdot t-set"></span> Set</span><span class="bhint"><code>command = variable</code> — type <code>set cash 500</code> in game, writes the number</span></div>
+          <textarea id="inSet" spellcheck="false" placeholder="set hp = obj_player.hp&#10;set ammo = obj_player.ammo&#10;set cash = global.g_cash"></textarea>
+          <div class="gen-ex"><div class="gx-label">generates · type "set cash 500" in game</div><pre><span class="k">if</span> (string_starts_with(_command, <span class="s">"set cash "</span>)) {
+    <span class="k">var</span> _val = real(string_delete(_command, 1, 9));
+    global.g_cash = _val;
+    _end_text = $<span class="s">"Cash set to {_val}"</span>;
+    <span class="k">return</span> _end_text;
+}</pre></div>
+        </div>
+
+        <div class="box">
+          <div class="bhead"><span class="bt"><span class="tdot t-adjust"></span> Adjust</span><span class="bhint"><code>noun amount = variable [min max]</code> — makes <code>add</code> / <code>minus</code></span></div>
+          <textarea id="inAdjust" spellcheck="false" placeholder="ammo 10 = obj_player.ammo 0 99&#10;cash 100 = global.g_cash 0 999999"></textarea>
+          <div class="gen-ex"><div class="gx-label">generates · "add ammo" and "minus ammo"</div><pre><span class="k">case</span> <span class="s">"add ammo"</span>:
+    obj_player.ammo += 10;
+    obj_player.ammo = clamp(obj_player.ammo, 0, 99);
+    _end_text = $<span class="s">"Ammo +10 → {obj_player.ammo}"</span>;
+<span class="k">break</span>;
+<span class="k">case</span> <span class="s">"minus ammo"</span>:
+    obj_player.ammo -= 10;
+    obj_player.ammo = clamp(obj_player.ammo, 0, 99);
+<span class="k">break</span>;</pre></div>
+        </div>
+
+        <div class="box">
+          <div class="bhead"><span class="bt"><span class="tdot t-action"></span> Action</span><span class="bhint"><code>command = code</code> — runs once, separate statements with <code>;</code></span></div>
+          <textarea id="inAction" spellcheck="false" placeholder="refill = obj_player.hp = obj_player.hp_max; obj_player.ammo = obj_player.ammo_max"></textarea>
+          <div class="gen-ex"><div class="gx-label">generates · runs once when typed</div><pre><span class="k">case</span> <span class="s">"refill"</span>:
+    obj_player.hp = obj_player.hp_max;
+    obj_player.ammo = obj_player.ammo_max;
+<span class="k">break</span>;</pre></div>
+        </div>
+
+        <div class="box">
+          <div class="bhead"><span class="bt"><span class="tdot t-give"></span> Give</span><span class="bhint"><code>noun = how to give it</code> — type <code>give item 5</code> <b>or</b> <code>give item sword</code> in game (ID or name)</span></div>
+          <textarea id="inGive" spellcheck="false" placeholder="item = obj_player.item = _id"></textarea>
+          <div class="gen-ex"><div class="gx-label">generates · "give item 5" or "give item sword"</div><pre><span class="k">if</span> (string_starts_with(_command, <span class="s">"give item "</span>)) {
+    <span class="k">var</span> _arg = string_delete(_command, 1, 10);
+    <span class="k">var</span> _id  = -1;
+    <span class="k">if</span> (string_digits(_arg) == _arg) {
+        _id = real(_arg);                        <span class="s">// number = ID</span>
+    } <span class="k">else</span> {
+        <span class="k">for</span> (<span class="k">var</span> _i = 0; _i &lt; ITEM_ID.END; _i++) {  <span class="s">// text = find by name</span>
+            <span class="k">if</span> (string_lower(global.g_items[_i].name) == _arg) { _id = _i; <span class="k">break</span>; }
+        }
+    }
+    <span class="k">if</span> (_id >= 0 && _id &lt; ITEM_ID.END) {
+        obj_player.item = _id;
+        _end_text = $<span class="s">"Gave {global.g_items[_id].name}"</span>;
+    }
+    <span class="k">return</span> _end_text;
+}</pre></div>
+        </div>
+
+        <div class="btn-row" style="margin-top:13px;">
+          <button class="btn btn-ghost" id="exampleBtn">Load example</button>
+          <button class="btn btn-ghost" id="clearBtn">Clear all</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Settings</h3>
+        <div class="row">
+          <label class="w">Script name</label>
+          <input type="text" class="mono" id="optScript" value="scr_console">
+        </div>
+        <div class="row">
+          <label class="w">Parser function</label>
+          <input type="text" class="mono" id="optFn" value="Cheats">
+        </div>
+        <div class="row">
+          <label class="w">Flag prefix</label>
+          <input type="text" class="mono" id="optPrefix" value="global.g_cheat_">
+        </div>
+        <div class="row give-row">
+          <label class="w">Give: items array</label>
+          <input type="text" class="mono sm" id="optGiveArr" value="global.g_items">
+          <span class="hint">array/struct holding your items, indexed by ID</span>
+        </div>
+        <div class="row give-row">
+          <label class="w">Give: count / end</label>
+          <input type="text" class="mono sm" id="optGiveEnd" value="ITEM_ID.END">
+          <span class="hint">how many items exist — an enum end or a number</span>
+        </div>
+        <div class="row">
+          <label class="w">Open key</label>
+          <select id="optKey">
+            <optgroup label="Function keys">
+              <option value="vk_f1">F1</option>
+              <option value="vk_f2" selected>F2</option>
+              <option value="vk_f3">F3</option>
+              <option value="vk_f4">F4</option>
+              <option value="vk_f5">F5</option>
+              <option value="vk_f6">F6</option>
+              <option value="vk_f7">F7</option>
+              <option value="vk_f8">F8</option>
+              <option value="vk_f9">F9</option>
+              <option value="vk_f10">F10</option>
+              <option value="vk_f11">F11</option>
+              <option value="vk_f12">F12</option>
+            </optgroup>
+            <optgroup label="Symbols">
+              <option value="192">` / ~ (tilde, classic console key)</option>
+              <option value="220">\\ (backslash)</option>
+              <option value="191">/ (slash)</option>
+            </optgroup>
+            <optgroup label="Letters">
+              <option value="ord(&quot;C&quot;)">C</option>
+              <option value="ord(&quot;K&quot;)">K</option>
+              <option value="ord(&quot;P&quot;)">P</option>
+              <option value="ord(&quot;T&quot;)">T</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option value="vk_tab">Tab</option>
+              <option value="vk_insert">Insert</option>
+              <option value="vk_home">Home</option>
+            </optgroup>
+          </select>
+          <label class="toggle"><input type="checkbox" id="optRecall" checked> Recall last with <code style="color:var(--accent);font-family:Consolas">Up</code></label>
+        </div>
+        <div class="row">
+          <label class="w">Console font</label>
+          <input type="text" class="mono sm" id="optFont" placeholder="(optional)">
+          <span class="hint">empty = use current font</span>
+        </div>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="optDev" checked> Guard with</label>
+          <input type="text" class="mono sm" id="optDevMacro" value="DEV_MODE">
+        </div>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="optLog" checked> Call <code style="color:var(--accent);font-family:Consolas">debug_log</code></label>
+          <input type="text" class="mono sm" id="optLogTag" value="CHEATS">
+        </div>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="optTF" checked> on/off via <code style="color:var(--accent);font-family:Consolas">draw_true_false</code></label>
+          <label class="toggle"><input type="checkbox" id="optHelp" checked> add <code style="color:var(--accent);font-family:Consolas">help</code></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL COLUMN -->
+    <div class="panel-col">
+      <div class="card">
+        <div class="sec-head">
+          <span class="sec-num">2</span>
+          <div>
+            <h3 class="sec-title">The script — paste once</h3>
+            <div class="sec-desc paste-tag">Paste this whole thing into a <b>new script asset</b> (name it <code id="scrRef" style="color:var(--accent2);font-family:Consolas">scr_console</code>).</div>
+          </div>
+        </div>
+        <div class="code-box">
+          <button class="btn btn-primary copy-btn" data-copy="outScript">Copy</button>
+          <textarea id="outScript" class="out" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="out-head">
+          <span class="ot">Controller hookup</span>
+        </div>
+        <div class="paste-tag" style="margin-bottom:9px;">Add these three calls to <b>any one</b> controller object (e.g. <code style="color:var(--accent2);font-family:Consolas">obj_game_controller</code>) — Create, Step and Draw GUI.</div>
+        <div class="code-box">
+          <button class="btn btn-primary copy-btn" data-copy="outHook">Copy</button>
+          <textarea id="outHook" class="out" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a class="gh-btn" href="https://github.com/GanjaViruss/GML-Cheat-Console" target="_blank">
+      <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      View on GitHub
+    </a>
+    <div class="footer-links">
+      <a href="https://github.com/GanjaViruss" target="_blank">More tools</a>
+      &nbsp;·&nbsp; <a href="https://github.com/GanjaViruss/GML-Tools" target="_blank">part of GML Tools</a>
+      &nbsp;·&nbsp; MIT License
+    </div>
+    <div class="footer-meta">
+      by <a href="https://github.com/GanjaViruss" target="_blank">GanjaViruss</a> &amp; <span class="claude">Claude Opus 4.8 &amp; Sonnet 4.6</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const HKEY = 'gml_cheat_console_v2';
+
+  const opts = {
+    script:'scr_console', fn:'Cheats', prefix:'global.g_cheat_',
+    key:'vk_f2', recall:true, font:'',
+    dev:true, devMacro:'DEV_MODE', log:true, logTag:'CHEATS', tf:true, help:true,
+    giveArr:'global.g_items', giveEnd:'ITEM_ID.END'
+  };
+
+  // ---------- helpers ----------
+  function san(s){ return (s||'').replace(/[^A-Za-z0-9_.\[\]]/g,'').replace(/^([0-9])/,'_$1'); }
+  function cmdClean(s){ return (s||'').toLowerCase().replace(/\s+/g,' ').trim().replace(/[^a-z0-9 _]/g,''); }
+  function cap(s){ s=(s||'').trim(); return s ? s[0].toUpperCase()+s.slice(1) : s; }
+  function isGlobal(t){ return /^global\./.test((t||'').trim()); }
+  function flagOf(name){ return (opts.prefix||'global.g_cheat_') + san(cmdClean(name).replace(/\s+/g,'_')); }
+  function lines(t){ return (t||'').replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(s=> s && !s.startsWith('//')); }
+  function splitFirst(line){
+    // split on the first '=' or ':' (whichever comes first). Both are safe for multi-word command names.
+    const ie=line.indexOf('='), ic=line.indexOf(':');
+    let i=-1;
+    if(ie<0) i=ic; else if(ic<0) i=ie; else i=Math.min(ie,ic);
+    return i<0 ? [line.trim(),''] : [line.slice(0,i).trim(), line.slice(i+1).trim()];
+  }
+  function stmts(code){ return (code||'').split(';').map(s=>s.trim()).filter(s=>s.length).map(s=> s+';'); }
+  function fn(){ return san(opts.fn)||'Cheats'; }
+
+  // ---------- parse the four boxes ----------
+  function parse(){
+    const toggles = lines($('inToggle').value).map(l=>{
+      const [name, effect] = splitFirst(l);
+      const cmd = cmdClean(name);
+      return cmd ? { cmd, flag: flagOf(name), effect: stmts(effect) } : null;
+    }).filter(Boolean);
+
+    const sets = lines($('inSet').value).map(l=>{
+      const [cmd, target] = splitFirst(l);
+      const c = cmdClean(cmd);
+      return c ? { cmd:c, target: san(target) || 'global.g_value' } : null;
+    }).filter(Boolean);
+
+    const adjusts = lines($('inAdjust').value).map(l=>{
+      const [left, right] = splitFirst(l);
+      const lt = left.trim().split(/\s+/);
+      let amount = 1, noun = left.trim();
+      if(lt.length>1 && /^\d+(\.\d+)?$/.test(lt[lt.length-1])){ amount = Number(lt.pop()); noun = lt.join(' '); }
+      const rt = right.trim().split(/\s+/).filter(Boolean);
+      const target = san(rt[0]||'') || 'value';
+      let clamp=false, cmin='0', cmax='100';
+      if(rt.length>=3){ clamp=true; cmin=rt[1]; cmax=rt[2]; }
+      const n = cmdClean(noun);
+      return n ? { noun:n, amount, target, clamp, cmin, cmax } : null;
+    }).filter(Boolean);
+
+    const actions = lines($('inAction').value).map(l=>{
+      const [cmd, code] = splitFirst(l);
+      const c = cmdClean(cmd);
+      return c ? { cmd:c, code: stmts(code) } : null;
+    }).filter(Boolean);
+
+    const gives = lines($('inGive').value).map(l=>{
+      const [noun, code] = splitFirst(l);
+      const n = cmdClean(noun);
+      // code is how to give the item, using _id (e.g. "obj_player.item = _id")
+      const giveCode = (code||'').trim().replace(/;+$/,'') ;
+      return n ? { noun:n, giveCode: giveCode || (opts.giveArr+'[_id]') } : null;
+    }).filter(Boolean);
+
+    return { toggles, sets, adjusts, actions, gives };
+  }
+  function isEmpty(P){ return !P.toggles.length && !P.sets.length && !P.adjusts.length && !P.actions.length && !P.gives.length; }
+
+  // ---------- feedback strings ----------
+  function fbToggle(t){
+    const lbl = cap(t.cmd);
+    return opts.tf ? '$"'+lbl+': {draw_true_false('+t.flag+')}"'
+                   : '"'+lbl+': " + string('+t.flag+')';
+  }
+  function fbSet(s){ return '$"'+cap(s.cmd.replace(/^set\s+/,''))+' set to {_val}"'; }
+  function fbAdjust(a, sign){ return '$"'+cap(a.noun)+' '+(sign>0?'+':'-')+a.amount+' \u2192 {'+a.target+'}"'; }
+  function fbAction(a){ return '"'+cap(a.cmd)+'"'; }
+  function logLine(){ return opts.log ? 'debug_log(_end_text, "'+(opts.logTag||'CHEATS')+'", _command);' : null; }
+
+  // wrap body lines in `if DEV_MODE { ... }`, at indent `ind`
+  function guard(body, ind){
+    if(!opts.dev) return body.map(l=> l==='' ? '' : ind+l);
+    const dm = opts.devMacro || 'DEV_MODE';
+    const out = [ ind+'if '+dm+' {' ];
+    body.forEach(l=> out.push(l==='' ? '' : ind+'    '+l));
+    out.push(ind+'}');
+    return out;
+  }
+
+  // ---------- Cheats() parser (returns full function string) ----------
+  function genCheats(P){
+    const f = fn();
+    const L = [];
+    L.push('/// @function '+f+'(_command)');
+    L.push('/// @desc Runs a console command. Returns the feedback text to draw.');
+    L.push('function '+f+'(_command) {');
+    L.push('    var _end_text = "";');
+    L.push('    _command = string_lower(_command);');
+
+    if(P.sets.length){
+      L.push('');
+      L.push('    // --- SET commands (read a number argument) ---');
+      P.sets.forEach(s=>{
+        const prefix = s.cmd+' ';
+        const strip = prefix.length;
+        const body = [
+          'var _val = real(string_delete(_command, 1, '+strip+'));',
+          s.target+' = _val;',
+          '_end_text = '+fbSet(s)+';'
+        ];
+        const lg = logLine(); if(lg) body.push(lg);
+        L.push('    if (string_starts_with(_command, "'+prefix+'")) {');
+        guard(body, '    ').forEach(x=> L.push('    '+x));
+        L.push('        return _end_text;');
+        L.push('    }');
+      });
+    }
+
+    if(P.gives.length){
+      const arr = san(opts.giveArr) || 'global.g_items';
+      const end = (opts.giveEnd||'ITEM_ID.END').trim();
+      L.push('');
+      L.push('    // --- GIVE commands (accept an item ID or a name) ---');
+      P.gives.forEach(g=>{
+        const prefix = 'give '+g.noun+' ';
+        const strip = prefix.length;
+        const inner = [
+          'var _arg = string_delete(_command, 1, '+strip+');',
+          'var _id  = -1;',
+          '',
+          '// a number was typed -> use it straight as the ID',
+          'if (string_digits(_arg) == _arg) {',
+          '    _id = real(_arg);',
+          '} else {',
+          '    // text was typed -> find the ID by matching the item name',
+          '    for (var _i = 0; _i < '+end+'; _i++) {',
+          '        if (string_lower('+arr+'[_i].name) == _arg) { _id = _i; break; }',
+          '    }',
+          '}',
+          '',
+          'if (_id >= 0 && _id < '+end+') {',
+          '    '+g.giveCode+';',
+          '    _end_text = $"Gave {'+arr+'[_id].name}";',
+          '} else {',
+          '    _end_text = $"No such item: {_arg}";',
+          '}'
+        ];
+        const lg = logLine(); if(lg) inner.push(lg);
+        L.push('    if (string_starts_with(_command, "'+prefix+'")) {');
+        guard(inner, '    ').forEach(x=> L.push('    '+x));
+        L.push('        return _end_text;');
+        L.push('    }');
+      });
+    }
+
+    L.push('');
+    L.push('    switch (_command) {');
+    L.push('');
+
+    P.toggles.forEach(t=>{
+      const body = [ t.flag+' = !'+t.flag+';', '_end_text = '+fbToggle(t)+';' ];
+      const lg = logLine(); if(lg) body.push(lg);
+      L.push('        case "'+t.cmd+'":');
+      guard(body, '            ').forEach(x=> L.push(x));
+      L.push('        break;');
+      L.push('');
+    });
+
+    P.adjusts.forEach(a=>{
+      const clampLine = a.clamp ? (a.target+' = clamp('+a.target+', '+a.cmin+', '+a.cmax+');') : null;
+      let body = [ a.target+' += '+a.amount+';' ];
+      if(clampLine) body.push(clampLine);
+      body.push('_end_text = '+fbAdjust(a,1)+';');
+      let lg = logLine(); if(lg) body.push(lg);
+      L.push('        case "add '+a.noun+'":');
+      guard(body, '            ').forEach(x=> L.push(x));
+      L.push('        break;');
+      body = [ a.target+' -= '+a.amount+';' ];
+      if(clampLine) body.push(clampLine);
+      body.push('_end_text = '+fbAdjust(a,-1)+';');
+      lg = logLine(); if(lg) body.push(lg);
+      L.push('        case "minus '+a.noun+'":');
+      guard(body, '            ').forEach(x=> L.push(x));
+      L.push('        break;');
+      L.push('');
+    });
+
+    P.actions.forEach(a=>{
+      const body = a.code.slice();
+      if(body.length===0) body.push('// (no code)');
+      body.push('_end_text = '+fbAction(a)+';');
+      const lg = logLine(); if(lg) body.push(lg);
+      L.push('        case "'+a.cmd+'":');
+      guard(body, '            ').forEach(x=> L.push(x));
+      L.push('        break;');
+      L.push('');
+    });
+
+    if(opts.help){
+      const all = [];
+      P.toggles.forEach(t=> all.push(t.cmd));
+      P.sets.forEach(s=> all.push(s.cmd+' [value]'));
+      P.adjusts.forEach(a=>{ all.push('add '+a.noun); all.push('minus '+a.noun); });
+      P.actions.forEach(a=> all.push(a.cmd));
+      P.gives.forEach(g=> all.push('give '+g.noun+' [id or name]'));
+      const seen={}, list=[];
+      all.forEach(x=>{ if(!seen[x]){ seen[x]=1; list.push(x); } });
+      if(!list.length) list.push('(none yet)');
+      L.push('        case "help":');
+      L.push('            _end_text = "Commands: '+list.join(', ')+'";');
+      L.push('        break;');
+      L.push('');
+    }
+
+    L.push('        case "":');
+    L.push('            _end_text = "Type a command :)";');
+    L.push('        break;');
+    L.push('    }');
+    L.push('    return _end_text;');
+    L.push('}');
+    return L.join('\n');
+  }
+
+  // ---------- bodies (0-indent line arrays, indented later) ----------
+  function createBody(P){
+    const L = [];
+    if(opts.dev) L.push('global.g_dev_mode    = true;');
+    L.push('global.g_console_open = false;');
+    L.push('global.g_console_text = "";');
+    L.push('global.g_console_info = "";');
+    if(opts.recall) L.push('global.g_console_last = "";');
+    L.push('');
+    L.push('// cheat flags');
+    if(P.toggles.length){ P.toggles.forEach(t=> L.push(t.flag+' = false;')); }
+    else { L.push('// (add toggles to declare flags here)'); }
+    // declare any global.* set/adjust targets too
+    const seen={}, gl=[];
+    P.sets.forEach(s=>{ if(isGlobal(s.target) && !seen[s.target]){ seen[s.target]=1; gl.push(s.target); } });
+    P.adjusts.forEach(a=>{ if(isGlobal(a.target) && !seen[a.target]){ seen[a.target]=1; gl.push(a.target); } });
+    if(gl.length){ L.push(''); L.push('// set / adjust targets (already in your game — listed for reference):'); gl.forEach(t=> L.push('//   '+t)); }
+    return L;
+  }
+
+  function stepBody(P){
+    const key = opts.key || 'vk_f2';
+    const L = [];
+    L.push('// open / close');
+    L.push('if (keyboard_check_pressed('+key+')) {');
+    L.push('    CONSOLE_OPEN = !CONSOLE_OPEN;');
+    L.push('    CONSOLE_TEXT = "";');
+    L.push('    CONSOLE_INFO = "";');
+    L.push('    keyboard_string = "";');
+    L.push('}');
+    L.push('');
+    L.push('if (CONSOLE_OPEN) {');
+    L.push('    // backspace');
+    L.push('    if (keyboard_check_pressed(vk_backspace)) {');
+    L.push('        CONSOLE_TEXT = string_copy(CONSOLE_TEXT, 1, max(0, string_length(CONSOLE_TEXT) - 1));');
+    L.push('    }');
+    L.push('');
+    L.push('    // enter \u2014 run the command');
+    L.push('    if (keyboard_check_pressed(vk_enter)) {');
+    L.push('        CONSOLE_INFO = '+fn()+'(CONSOLE_TEXT);');
+    if(opts.recall) L.push('        CONSOLE_LAST = CONSOLE_TEXT;');
+    L.push('        CONSOLE_TEXT = "";');
+    L.push('        keyboard_string = "";');
+    L.push('    }');
+    L.push('');
+    L.push('    // delete \u2014 clear the line');
+    L.push('    if (keyboard_check_pressed(vk_delete)) {');
+    L.push('        CONSOLE_TEXT = "";');
+    L.push('        CONSOLE_INFO = "";');
+    L.push('        keyboard_string = "";');
+    L.push('    }');
+    if(opts.recall){
+      L.push('');
+      L.push('    // up \u2014 recall last command');
+      L.push('    if (keyboard_check_pressed(vk_up)) {');
+      L.push('        CONSOLE_TEXT = "";');
+      L.push('        keyboard_string = CONSOLE_LAST;');
+      L.push('    }');
+    }
+    L.push('');
+    L.push('    // type characters');
+    L.push('    CONSOLE_TEXT += keyboard_string;');
+    L.push('    keyboard_string = "";');
+    L.push('}');
+
+    // continuous toggle effects
+    const withEff = P.toggles.filter(t=> t.effect.length);
+    if(withEff.length){
+      L.push('');
+      L.push('// cheat effects (run while ON)');
+      withEff.forEach(t=>{
+        L.push('if ('+t.flag+') {');
+        t.effect.forEach(e=> L.push('    '+e));
+        L.push('}');
+      });
+    }
+    return L;
+  }
+
+  function drawBody(){
+    const font = (opts.font||'').trim();
+    const L = [];
+    L.push('if (CONSOLE_OPEN) {');
+    L.push('    var _caret = ((current_time div 500) mod 2 == 0) ? ">" : " ";');
+    L.push('    var _line  = _caret + " " + CONSOLE_TEXT;');
+    L.push('    var _gw    = display_get_gui_width();');
+    L.push('    var _pad   = 10;');
+    L.push('');
+    if(font) L.push('    draw_set_font('+san(font)+');');
+    else     L.push('    // draw_set_font(fo_yourfont);  // optional \u2014 uses the current font as-is');
+    L.push('    draw_set_halign(fa_left);');
+    L.push('    draw_set_valign(fa_top);');
+    L.push('');
+    L.push('    var _h = string_height(_line);');
+    L.push('    if (CONSOLE_INFO != "") _h += string_height(CONSOLE_INFO) + 4;');
+    L.push('');
+    L.push('    draw_set_alpha(0.75);');
+    L.push('    draw_set_color(c_black);');
+    L.push('    draw_rectangle(0, 0, _gw, _pad * 2 + _h, false);');
+    L.push('    draw_set_alpha(1);');
+    L.push('');
+    L.push('    draw_set_color(c_white);');
+    L.push('    draw_text(_pad, _pad, _line);');
+    L.push('');
+    L.push('    if (CONSOLE_INFO != "") {');
+    L.push('        draw_set_color(c_yellow);');
+    L.push('        draw_text(_pad, _pad + string_height(_line) + 4, CONSOLE_INFO);');
+    L.push('    }');
+    L.push('');
+    L.push('    draw_set_default();');
+    L.push('}');
+    return L;
+  }
+
+  function indent(arr, pad){ return arr.map(l=> l==='' ? '' : pad+l); }
+
+  // ---------- assemble the full script ----------
+  function genScript(P){
+    const scr = san(opts.script) || 'scr_console';
+    const L = [];
+    L.push('// =====================================================');
+    L.push('// '+scr+'  \u2014 generated by GML Cheat Console');
+    L.push('// 1) paste this WHOLE script into a new script asset called '+scr);
+    L.push('// 2) in any controller object call:');
+    L.push('//        Create:    console_create();');
+    L.push('//        Step:      console_step();');
+    L.push('//        Draw GUI:  console_draw();');
+    L.push('// =====================================================');
+    L.push('');
+    L.push('#macro CONSOLE_OPEN global.g_console_open');
+    L.push('#macro CONSOLE_TEXT global.g_console_text');
+    L.push('#macro CONSOLE_INFO global.g_console_info');
+    if(opts.recall) L.push('#macro CONSOLE_LAST global.g_console_last');
+    if(opts.dev)    L.push('#macro '+(opts.devMacro||'DEV_MODE')+' global.g_dev_mode');
+    L.push('');
+    L.push('function console_create() {');
+    indent(createBody(P), '    ').forEach(x=> L.push(x));
+    L.push('}');
+    L.push('');
+    L.push('function console_step() {');
+    indent(stepBody(P), '    ').forEach(x=> L.push(x));
+    L.push('}');
+    L.push('');
+    L.push('function console_draw() {');
+    indent(drawBody(), '    ').forEach(x=> L.push(x));
+    L.push('}');
+    L.push('');
+    L.push(genCheats(P));
+    return L.join('\n');
+  }
+
+  function genHook(){
+    return [
+      '// In your controller object (e.g. obj_game_controller):',
+      '',
+      '// --- Create event ---',
+      'console_create();',
+      '',
+      '// --- Step event ---',
+      'console_step();',
+      '',
+      '// --- Draw GUI event ---',
+      'console_draw();'
+    ].join('\n');
+  }
+
+  // ---------- render ----------
+  function generate(){
+    const P = parse();
+    $('outScript').value = isEmpty(P)
+      ? '// Write at least one cheat on the left to generate the script.'
+      : genScript(P);
+    $('outHook').value = genHook();
+    const r=$('scrRef'); if(r) r.textContent = san(opts.script)||'scr_console';
+    const tk=$('tutKey'); if(tk){ const sel=$('optKey'); tk.textContent = sel ? sel.options[sel.selectedIndex].textContent.replace(/\s*\(.*\)/,'') : 'F2'; }
+  }
+
+  // ---------- copy ----------
+  document.querySelectorAll('[data-copy]').forEach(b=> b.addEventListener('click', ()=>{
+    const t=$(b.dataset.copy); if(!t) return; t.select();
+    navigator.clipboard.writeText(t.value).then(()=>{
+      const o=b.textContent; b.textContent='Copied!';
+      setTimeout(()=> b.textContent=o, 1200);
+    }).catch(()=> document.execCommand('copy'));
+  }));
+
+  // ---------- inputs ----------
+  ['inToggle','inSet','inAdjust','inAction','inGive'].forEach(id=> $(id).addEventListener('input', ()=>{ generate(); save(); }));
+
+  function bindOpt(id, key, kind){
+    const e=$(id); if(!e) return;
+    if(kind==='check') e.addEventListener('change', ()=>{ opts[key]=e.checked; generate(); save(); });
+    else e.addEventListener('input', ()=>{ opts[key]=e.value; generate(); save(); });
+  }
+  bindOpt('optScript','script'); bindOpt('optFn','fn'); bindOpt('optPrefix','prefix');
+  bindOpt('optGiveArr','giveArr'); bindOpt('optGiveEnd','giveEnd');
+  bindOpt('optFont','font'); bindOpt('optDevMacro','devMacro'); bindOpt('optLogTag','logTag');
+  $('optKey').addEventListener('change', e=>{ opts.key=e.target.value; generate(); save(); });
+  bindOpt('optRecall','recall','check'); bindOpt('optDev','dev','check');
+  bindOpt('optLog','log','check'); bindOpt('optTF','tf','check'); bindOpt('optHelp','help','check');
+
+  // ---------- example / clear ----------
+  function loadExampleData(){
+    $('inToggle').value = 'god mode = obj_player.hp = obj_player.hp_max\nshow collisions =';
+    $('inSet').value    = 'set hp = obj_player.hp\nset ammo = obj_player.ammo\nset cash = global.g_cash';
+    $('inAdjust').value = 'ammo 10 = obj_player.ammo 0 99\ncash 100 = global.g_cash 0 999999';
+    $('inAction').value = 'refill = obj_player.hp = obj_player.hp_max; obj_player.ammo = obj_player.ammo_max';
+    $('inGive').value   = 'item = obj_player.item = _id';
+    $('optGiveArr').value = 'global.g_items'; opts.giveArr = 'global.g_items';
+    $('optGiveEnd').value = 'ITEM_ID.END';    opts.giveEnd = 'ITEM_ID.END';
+  }
+  $('exampleBtn').addEventListener('click', ()=>{ loadExampleData(); generate(); save(); });
+  $('clearBtn').addEventListener('click', ()=>{
+    ['inToggle','inSet','inAdjust','inAction','inGive'].forEach(id=> $(id).value='');
+    generate(); save();
+  });
+
+  // ---------- save / load ----------
+  let saveT=null;
+  function save(){
+    if(saveT) clearTimeout(saveT);
+    saveT=setTimeout(()=>{
+      try{
+        localStorage.setItem(HKEY, JSON.stringify({
+          opts,
+          boxes:{ t:$('inToggle').value, s:$('inSet').value, a:$('inAdjust').value, c:$('inAction').value, g:$('inGive').value }
+        }));
+      }catch(e){}
+    }, 300);
+  }
+  function load(){
+    try{
+      const raw=localStorage.getItem(HKEY); if(!raw) return false;
+      const d=JSON.parse(raw); if(!d) return false;
+      if(d.opts) Object.assign(opts, d.opts);
+      if(d.boxes){ $('inToggle').value=d.boxes.t||''; $('inSet').value=d.boxes.s||''; $('inAdjust').value=d.boxes.a||''; $('inAction').value=d.boxes.c||''; $('inGive').value=d.boxes.g||''; }
+      $('optScript').value=opts.script; $('optFn').value=opts.fn; $('optPrefix').value=opts.prefix;
+      $('optGiveArr').value=opts.giveArr||'global.g_items'; $('optGiveEnd').value=opts.giveEnd||'ITEM_ID.END';
+      $('optKey').value=opts.key; $('optRecall').checked=opts.recall; $('optFont').value=opts.font;
+      $('optDev').checked=opts.dev; $('optDevMacro').value=opts.devMacro;
+      $('optLog').checked=opts.log; $('optLogTag').value=opts.logTag;
+      $('optTF').checked=opts.tf; $('optHelp').checked=opts.help;
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // ---------- init ----------
+  if(!load()){ loadExampleData(); }
+  generate();
+})();
+</script>
+</body>
+</html>
